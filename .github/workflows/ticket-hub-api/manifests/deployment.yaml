@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticket-hub-api
+  namespace: ticket-hub-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ticket-hub-api
+  template:
+    metadata:
+      labels:
+        app: ticket-hub-api
+    spec:
+      serviceAccountName: ticket-hub-api
+      containers:
+        - name: ticket-hub-api
+          image: docker.io/DOCKERHUB_USER/ticket-hub-api:IMAGE_TAG
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_PASSWORD
+            - name: DATABASE_HOST
+              value: postgres.databases.svc.cluster.local
+            - name: DATABASE_PORT
+              value: "5432"
+            - name: DATABASE_NAME
+              value: ticket_hub
+            - name: PORT
+              value: "3000"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: INFRA_HUB_API_URL
+              value: http://infra-hub-api.infra-hub.svc.cluster.local:3000
+          readinessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
