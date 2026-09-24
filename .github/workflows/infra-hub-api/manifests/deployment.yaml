@@ -70,12 +70,3 @@ spec:
             limits:
               cpu: 250m
               memory: 256Mi
-          volumeMounts:
-            - name: ssh-key
-              mountPath: /etc/ssh-keys
-              readOnly: true
-      volumes:
-        - name: ssh-key
-          secret:
-            secretName: pcbox-ssh-key
-            defaultMode: 0400
