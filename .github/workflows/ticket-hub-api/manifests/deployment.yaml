@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ticket-hub-api
-  namespace: ticket-hub-api
+  namespace: ticket-hub
 spec:
   replicas: 1
   selector:
