@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: infra-hub-api
+  namespace: infra-hub
+spec:
+  selector:
+    app: infra-hub-api
+  ports:
+    - port: 3000
+      targetPort: 3000
+  type: ClusterIP
