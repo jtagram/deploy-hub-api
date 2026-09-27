@@ -36,7 +36,7 @@ spec:
             - name: DB_PORT
               value: "5432"
             - name: DB_NAME
-              value: infra_hub
+              value: infra_hub_api
             - name: PORT
               value: "3000"
             - name: LOG_LEVEL

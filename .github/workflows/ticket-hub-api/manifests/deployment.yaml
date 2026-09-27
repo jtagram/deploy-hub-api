@@ -36,7 +36,7 @@ spec:
             - name: DATABASE_PORT
               value: "5432"
             - name: DATABASE_NAME
-              value: ticket_hub
+              value: ticket_hub_api
             - name: PORT
               value: "3000"
             - name: LOG_LEVEL
