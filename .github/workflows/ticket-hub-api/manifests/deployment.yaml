@@ -43,6 +43,18 @@ spec:
               value: "info"
             - name: INFRA_HUB_API_URL
               value: http://infra-hub-api.infra-hub.svc.cluster.local:3000
+            - name: INFRA_HUB_API_APPLICATION_NAME
+              value: "infra-hub-api"
+            - name: INFRA_HUB_API_SERVICE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: infra-hub-api-service-credentials
+                  key: CLIENT_ID
+            - name: INFRA_HUB_API_SERVICE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: infra-hub-api-service-credentials
+                  key: CLIENT_SECRET
           readinessProbe:
             tcpSocket:
               port: 3000

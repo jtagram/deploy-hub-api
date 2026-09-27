@@ -1,62 +1,60 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: infra-hub-api
-  namespace: infra-hub
+  name: iam-api
+  namespace: iam-api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: infra-hub-api
+      app: iam-api
   template:
     metadata:
       labels:
-        app: infra-hub-api
+        app: iam-api
     spec:
-      serviceAccountName: infra-hub-api
+      serviceAccountName: iam-api
       containers:
-        - name: infra-hub-api
-          image: docker.io/DOCKERHUB_USER/infra-hub-api:IMAGE_TAG
+        - name: iam-api
+          image: docker.io/DOCKERHUB_USER/iam-api:IMAGE_TAG
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
           env:
-            - name: DB_USERNAME
+            - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
                   name: postgres-credentials
                   key: POSTGRES_USER
-            - name: DB_PASSWORD
+            - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: postgres-credentials
                   key: POSTGRES_PASSWORD
-            - name: DB_HOST
+            - name: DATABASE_HOST
               value: postgres.databases.svc.cluster.local
-            - name: DB_PORT
+            - name: DATABASE_PORT
               value: "5432"
-            - name: DB_NAME
-              value: infra_hub
+            - name: DATABASE_NAME
+              value: iam_api
+            - name: JWT_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-keys
+                  key: JWT_PRIVATE_KEY
+            - name: JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-keys
+                  key: JWT_PUBLIC_KEY
+            - name: JWT_EXPIRES_IN
+              value: "1h"
             - name: PORT
               value: "3000"
             - name: LOG_LEVEL
               value: "info"
-            - name: AUTH_API_URL
-              value: http://iam-api.iam-api.svc.cluster.local:3000
-            - name: SERVER_SSH_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: server-ssh-key
-                  key: SERVER_SSH_HOST
-            - name: SERVER_SSH_USER
-              valueFrom:
-                secretKeyRef:
-                  name: server-ssh-key
-                  key: SERVER_SSH_USER
-            - name: IAM_API_URL
-              value: http://iam-api.iam-api.svc.cluster.local:3000
-            - name: INFRA_HUB_API_APPLICATION_NAME
-              value: "infra-hub-api"
+            - name: IAM_APPLICATION_NAME
+              value: "iam"
           readinessProbe:
             tcpSocket:
               port: 3000
