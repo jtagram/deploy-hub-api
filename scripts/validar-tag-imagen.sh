@@ -19,4 +19,5 @@ case "$IMAGE_TAG" in
     ;;
 esac
 
-echo "El tag de la imagen ingresada es: $IMAGE_TAG"
+echo "validar-tag-imagen: el tag de la imagen ingresada es: $IMAGE_TAG" >&2
+echo "$IMAGE_TAG"
