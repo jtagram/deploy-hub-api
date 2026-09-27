@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticket-hub
+  namespace: ticket-hub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ticket-hub
+  template:
+    metadata:
+      labels:
+        app: ticket-hub
+    spec:
+      serviceAccountName: ticket-hub
+      containers:
+        - name: ticket-hub
+          image: docker.io/DOCKERHUB_USER/ticket-hub:IMAGE_TAG
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: IAM_API_URL
+              value: http://iam-api.iam-api.svc.cluster.local:3000
+            - name: TICKET_HUB_APPLICATION_NAME
+              value: "ticket-hub"
+            - name: TICKET_HUB_API_URL
+              value: http://ticket-hub-api.ticket-hub-api.svc.cluster.local:3000
+          readinessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi

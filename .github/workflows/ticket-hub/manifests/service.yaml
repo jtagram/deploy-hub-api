@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: infra-hub-api
-  namespace: infra-hub-api
+  name: ticket-hub
+  namespace: ticket-hub
 spec:
   selector:
-    app: infra-hub-api
+    app: ticket-hub
   ports:
     - port: 3000
       targetPort: 3000

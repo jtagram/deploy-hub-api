@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ticket-hub-api
-  namespace: ticket-hub
+  namespace: ticket-hub-api
 spec:
   replicas: 1
   selector:
@@ -41,8 +41,12 @@ spec:
               value: "3000"
             - name: LOG_LEVEL
               value: "info"
+            - name: IAM_API_URL
+              value: http://iam-api.iam-api.svc.cluster.local:3000
+            - name: TICKET_HUB_APPLICATION_NAME
+              value: "ticket-hub"
             - name: INFRA_HUB_API_URL
-              value: http://infra-hub-api.infra-hub.svc.cluster.local:3000
+              value: http://infra-hub-api.infra-hub-api.svc.cluster.local:3000
             - name: INFRA_HUB_API_APPLICATION_NAME
               value: "infra-hub-api"
             - name: INFRA_HUB_API_SERVICE_CLIENT_ID
