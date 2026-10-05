@@ -43,8 +43,10 @@ spec:
               value: "info"
             - name: IAM_API_URL
               value: http://iam-api.iam-api.svc.cluster.local:3000
-            - name: TICKET_HUB_APPLICATION_NAME
-              value: "ticket-hub"
+            - name: TICKET_HUB_API_APPLICATION_NAME
+              value: "ticket-hub-api"
+            - name: IAM_API_APPLICATION_NAME
+              value: "iam-api"
             - name: INFRA_HUB_API_URL
               value: http://infra-hub-api.infra-hub-api.svc.cluster.local:3000
             - name: INFRA_HUB_API_APPLICATION_NAME

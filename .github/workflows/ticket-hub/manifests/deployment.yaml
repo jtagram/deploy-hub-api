@@ -25,6 +25,8 @@ spec:
               value: http://iam-api.iam-api.svc.cluster.local:3000
             - name: TICKET_HUB_APPLICATION_NAME
               value: "ticket-hub"
+            - name: TICKET_HUB_TARGET_APPLICATION_NAME
+              value: "ticket-hub-api"
             - name: TICKET_HUB_API_URL
               value: http://ticket-hub-api.ticket-hub-api.svc.cluster.local:3000
           readinessProbe:
