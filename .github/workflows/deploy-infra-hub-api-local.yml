@@ -1,0 +1,61 @@
+name: Desplegar infra-hub-api en local (microk8s de pcbox)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-infra-hub-api-local
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Desplegar infra-hub-api en microk8s.
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_TAG: local
+    steps:
+      - name: Clonar el repositorio para acceder a los manifiestos.
+        uses: actions/checkout@v4
+
+      - name: Unirse a la red de Tailscale para llegar al servidor API de microk8s.
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:continuous-integration
+
+      - name: Generar el archivo de kubeconfig y exportarlo como la variable de entorno KUBECONFIG.
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG_MICROK8S }}
+        run: |
+          KUBECONFIG_PATH="$(bash ./scripts/guardar-kubeconfig.sh "$KUBECONFIG_CONTENT" "$RUNNER_TEMP/infra-hub-api-kubeconfig")"
+          echo "KUBECONFIG=$KUBECONFIG_PATH" >> "$GITHUB_ENV"
+
+      - name: Crear una copia de trabajo de los manifiestos de infra-hub-api antes de aplicarlos.
+        run: |
+          MANIFESTS_DIR="$(bash ./scripts/crear-copia-de-trabajo-de-manifiestos.sh .github/workflows/infra-hub-api/manifests "$RUNNER_TEMP/infra-hub-api-manifests")"
+          echo "MANIFESTS_DIR=$MANIFESTS_DIR" >> "$GITHUB_ENV"
+
+      - name: Reemplazar el nombre de usuario de Docker Hub y la etiqueta local en el manifiesto de despliegue.
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: bash ./scripts/reemplazar-placeholders-deployment.sh "$DOCKERHUB_USERNAME" "$IMAGE_TAG" "$MANIFESTS_DIR/deployment.yaml"
+
+      - name: Aplicar los manifiestos de infra-hub-api al clúster de microk8s.
+        run: kubectl apply -f "$MANIFESTS_DIR/"
+
+      - name: Reiniciar el despliegue de infra-hub-api para descargar la nueva imagen.
+        run: kubectl rollout restart deployment/infra-hub-api -n infra-hub-api
+
+      - name: Esperar a que finalice el rollout de infra-hub-api.
+        run: kubectl rollout status deployment/infra-hub-api -n infra-hub-api --timeout=180s
+
+      - name: Mostrar los pods en ejecución de infra-hub-api.
+        run: kubectl get pods -n infra-hub-api -l app=infra-hub-api
+
+      - name: Mostrar eventos recientes del namespace infra-hub-api si falla el despliegue.
+        if: failure()
+        run: kubectl get events -n infra-hub-api --sort-by=.lastTimestamp || true
