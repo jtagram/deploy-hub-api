@@ -25,6 +25,8 @@ spec:
               value: http://iam-api.iam-api.svc.cluster.local:3000
             - name: IAM_APPLICATION_NAME
               value: "iam"
+            - name: IAM_TARGET_APPLICATION_NAME
+              value: "iam-api"
           readinessProbe:
             tcpSocket:
               port: 3000

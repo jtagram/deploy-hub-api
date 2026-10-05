@@ -54,7 +54,7 @@ spec:
             - name: LOG_LEVEL
               value: "info"
             - name: IAM_APPLICATION_NAME
-              value: "iam"
+              value: "iam-api"
           readinessProbe:
             tcpSocket:
               port: 3000
