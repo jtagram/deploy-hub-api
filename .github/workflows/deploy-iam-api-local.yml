@@ -1,7 +1,11 @@
 name: Desplegar iam-api en local (microk8s de pcbox)
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - local
+    paths:
+      - .github/local-triggers/iam-api
 
 concurrency:
   group: deploy-iam-api-local

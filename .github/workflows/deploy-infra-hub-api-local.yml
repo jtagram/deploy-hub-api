@@ -1,7 +1,11 @@
 name: Desplegar infra-hub-api en local (microk8s de pcbox)
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - local
+    paths:
+      - .github/local-triggers/infra-hub-api
 
 concurrency:
   group: deploy-infra-hub-api-local

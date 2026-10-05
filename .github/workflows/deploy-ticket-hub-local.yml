@@ -1,7 +1,11 @@
 name: Desplegar ticket-hub en local (microk8s de pcbox)
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - local
+    paths:
+      - .github/local-triggers/ticket-hub
 
 concurrency:
   group: deploy-ticket-hub-local
