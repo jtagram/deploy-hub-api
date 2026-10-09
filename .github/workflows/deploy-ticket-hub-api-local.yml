@@ -18,6 +18,7 @@ jobs:
   deploy:
     name: Desplegar ticket-hub-api en microk8s.
     runs-on: ubuntu-latest
+    environment: local
     env:
       IMAGE_TAG: local
     steps:

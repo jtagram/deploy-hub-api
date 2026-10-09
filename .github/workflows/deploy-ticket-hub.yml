@@ -18,6 +18,7 @@ jobs:
   validate:
     name: Validar secretos y manifiestos del despliegue antes de continuar.
     runs-on: ubuntu-latest
+    environment: prod
     steps:
       - name: Clonar el repositorio para acceder al script de validación.
         uses: actions/checkout@v4
@@ -71,6 +72,7 @@ jobs:
     name: Desplegar ticket-hub en microk8s.
     needs: validate
     runs-on: ubuntu-latest
+    environment: prod
     steps:
       - name: Clonar el repositorio para acceder a los manifiestos.
         uses: actions/checkout@v4

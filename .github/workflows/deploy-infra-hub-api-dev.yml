@@ -1,4 +1,4 @@
-name: Desplegar infra-hub-api en producción (microk8s de pcbox)
+name: Desplegar infra-hub-api en dev (microk8s de pcbox)
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
         required: true
 
 concurrency:
-  group: deploy-infra-hub-api-${{ github.ref }}
+  group: deploy-infra-hub-api-dev-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -18,7 +18,7 @@ jobs:
   validate:
     name: Validar secretos y manifiestos del despliegue antes de continuar.
     runs-on: ubuntu-latest
-    environment: prod
+    environment: dev
     steps:
       - name: Clonar el repositorio para acceder al script de validación.
         uses: actions/checkout@v4
@@ -72,7 +72,7 @@ jobs:
     name: Desplegar infra-hub-api en microk8s.
     needs: validate
     runs-on: ubuntu-latest
-    environment: prod
+    environment: dev
     steps:
       - name: Clonar el repositorio para acceder a los manifiestos.
         uses: actions/checkout@v4

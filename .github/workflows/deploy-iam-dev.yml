@@ -1,4 +1,4 @@
-name: Desplegar infra-hub-api en producción (microk8s de pcbox)
+name: Desplegar iam en dev (microk8s de pcbox)
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
         required: true
 
 concurrency:
-  group: deploy-infra-hub-api-${{ github.ref }}
+  group: deploy-iam-dev-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -18,7 +18,7 @@ jobs:
   validate:
     name: Validar secretos y manifiestos del despliegue antes de continuar.
     runs-on: ubuntu-latest
-    environment: prod
+    environment: dev
     steps:
       - name: Clonar el repositorio para acceder al script de validación.
         uses: actions/checkout@v4
@@ -44,35 +44,35 @@ jobs:
         run: bash ./scripts/validar-secreto.sh TS_OAUTH_SECRET "$TS_OAUTH_SECRET"
 
       - name: Validar la sintaxis YAML del manifiesto namespace.yaml.
-        run: bash ./scripts/validar-yaml-manifiestos.sh .github/workflows/infra-hub-api/manifests/namespace.yaml
+        run: bash ./scripts/validar-yaml-manifiestos.sh .github/workflows/iam/manifests/namespace.yaml
 
       - name: Validar la sintaxis YAML del manifiesto deployment.yaml.
-        run: bash ./scripts/validar-yaml-manifiestos.sh .github/workflows/infra-hub-api/manifests/deployment.yaml
+        run: bash ./scripts/validar-yaml-manifiestos.sh .github/workflows/iam/manifests/deployment.yaml
 
       - name: Validar la sintaxis YAML del manifiesto service.yaml.
-        run: bash ./scripts/validar-yaml-manifiestos.sh .github/workflows/infra-hub-api/manifests/service.yaml
+        run: bash ./scripts/validar-yaml-manifiestos.sh .github/workflows/iam/manifests/service.yaml
 
       - name: Validar el formato de la etiqueta de imagen recibida como entrada.
         env:
           REQUESTED_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
         run: bash ./scripts/validar-formato-de-tag.sh IMAGE_TAG "$REQUESTED_IMAGE_TAG"
 
-      - name: Validar que la etiqueta de imagen exista como tag en GitHub (infra-hub-api).
+      - name: Validar que la etiqueta de imagen exista como tag en GitHub (iam).
         env:
           REQUESTED_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
-        run: bash ./scripts/validar-tag-en-github.sh jtagram/infra-hub-api "$REQUESTED_IMAGE_TAG"
+        run: bash ./scripts/validar-tag-en-github.sh jtagram/iam "$REQUESTED_IMAGE_TAG"
 
       - name: Validar que la etiqueta de imagen exista en Docker Hub.
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           REQUESTED_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
-        run: bash ./scripts/validar-tag-en-dockerhub.sh "$DOCKERHUB_USERNAME" "infra-hub-api" "$REQUESTED_IMAGE_TAG"
+        run: bash ./scripts/validar-tag-en-dockerhub.sh "$DOCKERHUB_USERNAME" "iam" "$REQUESTED_IMAGE_TAG"
 
   deploy:
-    name: Desplegar infra-hub-api en microk8s.
+    name: Desplegar iam en microk8s.
     needs: validate
     runs-on: ubuntu-latest
-    environment: prod
+    environment: dev
     steps:
       - name: Clonar el repositorio para acceder a los manifiestos.
         uses: actions/checkout@v4
@@ -95,15 +95,15 @@ jobs:
         env:
           KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG_MICROK8S }}
         run: |
-          KUBECONFIG_PATH="$(bash ./scripts/guardar-kubeconfig.sh "$KUBECONFIG_CONTENT" "$RUNNER_TEMP/infra-hub-api-kubeconfig")"
+          KUBECONFIG_PATH="$(bash ./scripts/guardar-kubeconfig.sh "$KUBECONFIG_CONTENT" "$RUNNER_TEMP/iam-kubeconfig")"
           echo "KUBECONFIG=$KUBECONFIG_PATH" >> "$GITHUB_ENV"
 
       - name: Verificar que el clúster de microk8s sea accesible antes de aplicar los manifiestos.
         run: kubectl get nodes
 
-      - name: Crear una copia de trabajo de los manifiestos de infra-hub-api antes de aplicarlos.
+      - name: Crear una copia de trabajo de los manifiestos de iam antes de aplicarlos.
         run: |
-          MANIFESTS_DIR="$(bash ./scripts/crear-copia-de-trabajo-de-manifiestos.sh .github/workflows/infra-hub-api/manifests "$RUNNER_TEMP/infra-hub-api-manifests")"
+          MANIFESTS_DIR="$(bash ./scripts/crear-copia-de-trabajo-de-manifiestos.sh .github/workflows/iam/manifests "$RUNNER_TEMP/iam-manifests")"
           echo "MANIFESTS_DIR=$MANIFESTS_DIR" >> "$GITHUB_ENV"
 
       - name: Reemplazar el nombre de usuario de Docker Hub y la etiqueta de la imagen en el manifiesto de despliegue.
@@ -111,28 +111,28 @@ jobs:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: bash ./scripts/reemplazar-placeholders-deployment.sh "$DOCKERHUB_USERNAME" "$IMAGE_TAG" "$MANIFESTS_DIR/deployment.yaml"
 
-      - name: Aplicar los manifiestos de infra-hub-api al clúster de microk8s.
+      - name: Aplicar los manifiestos de iam al clúster de microk8s.
         run: kubectl apply -f "$MANIFESTS_DIR/"
 
-      - name: Reiniciar el despliegue de infra-hub-api para descargar la nueva imagen.
-        run: kubectl rollout restart deployment/infra-hub-api -n infra-hub-api
+      - name: Reiniciar el despliegue de iam para descargar la nueva imagen.
+        run: kubectl rollout restart deployment/iam -n iam
 
-      - name: Esperar a que finalice el rollout de infra-hub-api.
-        run: kubectl rollout status deployment/infra-hub-api -n infra-hub-api --timeout=180s
+      - name: Esperar a que finalice el rollout de iam.
+        run: kubectl rollout status deployment/iam -n iam --timeout=180s
 
-      - name: Mostrar el estado del despliegue de infra-hub-api.
-        run: kubectl get deployment infra-hub-api -n infra-hub-api
+      - name: Mostrar el estado del despliegue de iam.
+        run: kubectl get deployment iam -n iam
 
-      - name: Mostrar los pods en ejecución de infra-hub-api.
-        run: kubectl get pods -n infra-hub-api -l app=infra-hub-api
+      - name: Mostrar los pods en ejecución de iam.
+        run: kubectl get pods -n iam -l app=iam
 
-      - name: Mostrar el servicio de infra-hub-api.
-        run: kubectl get service infra-hub-api -n infra-hub-api
+      - name: Mostrar el servicio de iam.
+        run: kubectl get service iam -n iam
 
-      - name: Describir el despliegue de infra-hub-api si la instalación falla.
+      - name: Describir el despliegue de iam si la instalación falla.
         if: failure()
-        run: kubectl describe deployment infra-hub-api -n infra-hub-api || true
+        run: kubectl describe deployment iam -n iam || true
 
-      - name: Mostrar eventos recientes del namespace infra-hub-api si falla el despliegue.
+      - name: Mostrar eventos recientes del namespace iam si falla el despliegue.
         if: failure()
-        run: kubectl get events -n infra-hub-api --sort-by=.lastTimestamp || true
+        run: kubectl get events -n iam --sort-by=.lastTimestamp || true
