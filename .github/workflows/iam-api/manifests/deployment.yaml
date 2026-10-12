@@ -56,10 +56,13 @@ spec:
             - name: IAM_APPLICATION_NAME
               value: "iam-api"
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health
               port: 3000
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
           livenessProbe:
             tcpSocket:
               port: 3000
