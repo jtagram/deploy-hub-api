@@ -61,6 +61,12 @@ spec:
                 secretKeyRef:
                   name: ticket-hub-api-service-credentials
                   key: CLIENT_SECRET
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            periodSeconds: 5
+            failureThreshold: 30
           readinessProbe:
             httpGet:
               path: /health

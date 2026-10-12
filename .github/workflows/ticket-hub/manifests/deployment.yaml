@@ -29,6 +29,12 @@ spec:
               value: "ticket-hub-api"
             - name: TICKET_HUB_API_URL
               value: http://ticket-hub-api.ticket-hub-api.svc.cluster.local:3000
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            periodSeconds: 5
+            failureThreshold: 30
           readinessProbe:
             httpGet:
               path: /api/health

@@ -55,6 +55,12 @@ spec:
               value: "info"
             - name: IAM_APPLICATION_NAME
               value: "iam-api"
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            periodSeconds: 5
+            failureThreshold: 30
           readinessProbe:
             httpGet:
               path: /health

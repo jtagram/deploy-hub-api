@@ -60,6 +60,12 @@ spec:
               value: http://iam-api.iam-api.svc.cluster.local:3000
             - name: INFRA_HUB_API_APPLICATION_NAME
               value: "infra-hub-api"
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            periodSeconds: 5
+            failureThreshold: 30
           readinessProbe:
             httpGet:
               path: /health
