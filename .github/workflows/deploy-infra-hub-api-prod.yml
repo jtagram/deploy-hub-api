@@ -1,4 +1,4 @@
-name: Lanzar y desplegar infra-hub-api en producción (microk8s de pcbox)
+name: Lanzar y desplegar infra-hub-api en producción
 
 on:
   workflow_dispatch:

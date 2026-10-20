@@ -1,4 +1,4 @@
-name: Desplegar infra-hub-api en local (microk8s de pcbox)
+name: Desplegar infra-hub-api en local
 
 on:
   workflow_dispatch:

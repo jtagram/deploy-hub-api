@@ -1,4 +1,4 @@
-name: Lanzar y desplegar iam-api en producción (microk8s de pcbox)
+name: Lanzar y desplegar iam-api en producción
 
 on:
   workflow_dispatch:

@@ -1,4 +1,4 @@
-name: Desplegar iam-api en local (microk8s de pcbox)
+name: Desplegar iam-api en local
 
 on:
   workflow_dispatch:
