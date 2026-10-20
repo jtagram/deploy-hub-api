@@ -51,6 +51,10 @@ on:
         description: "Nuevo tag de versión para compilar, publicar y desplegar. Valor obligatorio."
         required: true
         type: string
+      run_e2e_tests:
+        description: "Si es true, ejecuta los tests e2e (npm run test:e2e) en el job quality. Valor obligatorio."
+        required: true
+        type: boolean
 
 permissions:
   contents: read
@@ -285,6 +289,7 @@ jobs:
         run: npm test
 
       - name: Ejecutar los tests e2e.
+        if: ${{ inputs.run_e2e_tests }}
         run: npm run test:e2e
 
   build-and-push:

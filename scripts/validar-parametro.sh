@@ -12,7 +12,7 @@ PARAMETER_VALUE="$2"
 TRIMMED_VALUE="$(printf '%s' "$PARAMETER_VALUE" | tr -d '[:space:]')"
 
 if [ -z "$TRIMMED_VALUE" ]; then
-  echo "validar-parametro: el parámetro requerido $PARAMETER_NAME llegó vacío, en blanco o no se envió. Revisá el bloque 'with:' del workflow que llama a deploy-backend.yml" >&2
+  echo "validar-parametro: el parámetro requerido $PARAMETER_NAME llegó vacío, en blanco o no se envió. Revisá el bloque 'with:' del workflow que llama a deploy.yml" >&2
   exit 1
 fi
 

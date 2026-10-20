@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   deploy:
-    uses: ./.github/workflows/deploy-backend.yml
+    uses: ./.github/workflows/deploy.yml
     with:
       environment: prod
       approver_environment: production-approver
@@ -33,6 +33,7 @@ jobs:
       deploy_hub_ref: master
       tag_prefix: prod-
       image_repository: iam-api
+      run_e2e_tests: true
       previous_stable_tag: ${{ inputs.previous_stable_tag }}
       new_tag: ${{ inputs.new_tag }}
     secrets: inherit
