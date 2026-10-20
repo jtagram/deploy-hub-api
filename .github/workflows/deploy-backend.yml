@@ -1,0 +1,447 @@
+name: Lanzar y desplegar un backend
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "Environment de GitHub de los jobs: dev o prod. Valor obligatorio."
+        required: true
+        type: string
+      approver_environment:
+        description: "Environment de GitHub que aprueba antes del deploy. Valor obligatorio."
+        required: true
+        type: string
+      app_name:
+        description: "Nombre de la aplicación (carpeta de manifiestos y del clone). Valor obligatorio."
+        required: true
+        type: string
+      deployment_name:
+        description: "Nombre del Deployment de kubernetes. Valor obligatorio."
+        required: true
+        type: string
+      namespace:
+        description: "Namespace de kubernetes. Valor obligatorio."
+        required: true
+        type: string
+      app_repository:
+        description: "Repositorio de la aplicación (owner/repo). Valor obligatorio."
+        required: true
+        type: string
+      app_ref:
+        description: "Rama de la aplicación que se compila y se despliega. Valor obligatorio."
+        required: true
+        type: string
+      deploy_hub_ref:
+        description: "Única rama de deploy-hub-api desde la que se puede lanzar este workflow. Valor obligatorio."
+        required: true
+        type: string
+      tag_prefix:
+        description: "Prefijo que deben tener los tags (por ejemplo dev-). Valor obligatorio."
+        required: true
+        type: string
+      image_repository:
+        description: "Nombre del repositorio de la imagen en Docker Hub. Valor obligatorio."
+        required: true
+        type: string
+      previous_stable_tag:
+        description: "Tag que se mantiene como la última versión estable conocida. Valor obligatorio."
+        required: true
+        type: string
+      new_tag:
+        description: "Nuevo tag de versión para compilar, publicar y desplegar. Valor obligatorio."
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  ENVIRONMENT: ${{ inputs.environment }}
+  APP_NAME: ${{ inputs.app_name }}
+  DEPLOYMENT_NAME: ${{ inputs.deployment_name }}
+  NAMESPACE: ${{ inputs.namespace }}
+  APP_REPOSITORY: ${{ inputs.app_repository }}
+  APP_REF: ${{ inputs.app_ref }}
+  DEPLOY_HUB_REF: ${{ inputs.deploy_hub_ref }}
+  TAG_PREFIX: ${{ inputs.tag_prefix }}
+  IMAGE_REPOSITORY: ${{ inputs.image_repository }}
+  APPROVER_ENVIRONMENT: ${{ inputs.approver_environment }}
+  SCRIPTS_DIR: ${{ github.workspace }}/scripts
+  PREVIOUS_STABLE_TAG: ${{ inputs.previous_stable_tag }}
+  NEW_TAG: ${{ inputs.new_tag }}
+
+jobs:
+  validate-branch:
+    name: Validar que el workflow se lance desde la rama permitida de deploy-hub-api.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar deploy-hub-api para acceder a los scripts.
+        uses: actions/checkout@v4
+
+      - name: Verificar que la rama desde la que se lanzó sea ${{ env.DEPLOY_HUB_REF }}.
+        run: bash "$SCRIPTS_DIR/validar-rama.sh" "$GITHUB_REF" "$DEPLOY_HUB_REF"
+
+  validate-caller-inputs:
+    name: Validar que los inputs enviados por el workflow padre no sean blancos.
+    needs: validate-branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar deploy-hub-api para acceder a los scripts.
+        uses: actions/checkout@v4
+
+      - name: Verificar que el input environment no sea blanco.
+        run: bash "$SCRIPTS_DIR/validar-parametro.sh" environment "$ENVIRONMENT"
+
+      - name: Verificar que el input approver_environment no sea blanco.
+        run: bash "$SCRIPTS_DIR/validar-parametro.sh" approver_environment "$APPROVER_ENVIRONMENT"
+
+      - name: Verificar que el input app_name no sea blanco.
+        run: bash "$SCRIPTS_DIR/validar-parametro.sh" app_name "$APP_NAME"
+
+      - name: Verificar que el input deployment_name no sea blanco.
+        run: bash "$SCRIPTS_DIR/validar-parametro.sh" deployment_name "$DEPLOYMENT_NAME"
+
+      - name: Verificar que el input namespace no sea blanco.
+        run: bash "$SCRIPTS_DIR/validar-parametro.sh" namespace "$NAMESPACE"
+
+      - name: Verificar que el input app_repository no sea blanco.
+        run: bash "$SCRIPTS_DIR/validar-parametro.sh" app_repository "$APP_REPOSITORY"
+
+      - name: Verificar que el input app_ref no sea blanco.
+        run: bash "$SCRIPTS_DIR/validar-parametro.sh" app_ref "$APP_REF"
+
+      - name: Verificar que el input deploy_hub_ref no sea blanco.
+        run: bash "$SCRIPTS_DIR/validar-parametro.sh" deploy_hub_ref "$DEPLOY_HUB_REF"
+
+      - name: Verificar que el input tag_prefix no sea blanco.
+        run: bash "$SCRIPTS_DIR/validar-parametro.sh" tag_prefix "$TAG_PREFIX"
+
+      - name: Verificar que el input image_repository no sea blanco.
+        run: bash "$SCRIPTS_DIR/validar-parametro.sh" image_repository "$IMAGE_REPOSITORY"
+
+  validate-input-tag:
+    name: Validar que los tags de entrada no sean blancos y tengan el prefijo y el formato correctos.
+    needs: validate-caller-inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar deploy-hub-api para acceder a los scripts.
+        uses: actions/checkout@v4
+
+      - name: Verificar que el parámetro previous_stable_tag no sea blanco.
+        run: bash "$SCRIPTS_DIR/validar-parametro.sh" previous_stable_tag "$PREVIOUS_STABLE_TAG"
+
+      - name: Verificar que el parámetro new_tag no sea blanco.
+        run: bash "$SCRIPTS_DIR/validar-parametro.sh" new_tag "$NEW_TAG"
+
+      - name: Validar que el input del tag estable anterior empiece con el prefijo del ambiente.
+        run: bash "$SCRIPTS_DIR/validar-prefijo-de-tag.sh" PREVIOUS_STABLE_TAG "$PREVIOUS_STABLE_TAG" "$TAG_PREFIX"
+
+      - name: Validar que el input del nuevo tag empiece con el prefijo del ambiente.
+        run: bash "$SCRIPTS_DIR/validar-prefijo-de-tag.sh" NEW_TAG "$NEW_TAG" "$TAG_PREFIX"
+
+      - name: Validar que el input del tag estable anterior tenga el formato ${{ env.TAG_PREFIX }}vNUMERO.NUMERO.NUMERO.
+        run: bash "$SCRIPTS_DIR/validar-formato-de-tag.sh" PREVIOUS_STABLE_TAG "$PREVIOUS_STABLE_TAG"
+
+      - name: Validar que el input del nuevo tag tenga el formato ${{ env.TAG_PREFIX }}vNUMERO.NUMERO.NUMERO.
+        run: bash "$SCRIPTS_DIR/validar-formato-de-tag.sh" NEW_TAG "$NEW_TAG"
+
+  validate-secrets:
+    name: Validar que los secrets estén definidos antes de compilar.
+    needs: validate-input-tag
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      APP_REPO_TOKEN: ${{ secrets.APP_REPO_TOKEN }}
+      KUBECONFIG_MICROK8S: ${{ secrets.KUBECONFIG_MICROK8S }}
+      TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+      TS_OAUTH_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
+    steps:
+      - name: Clonar deploy-hub-api para acceder a los scripts.
+        uses: actions/checkout@v4
+
+      - name: Verificar que el secret DOCKERHUB_USERNAME esté definido.
+        run: bash "$SCRIPTS_DIR/validar-secreto.sh" DOCKERHUB_USERNAME "$DOCKERHUB_USERNAME"
+
+      - name: Verificar que el secret DOCKERHUB_TOKEN esté definido.
+        run: bash "$SCRIPTS_DIR/validar-secreto.sh" DOCKERHUB_TOKEN "$DOCKERHUB_TOKEN"
+
+      - name: Verificar que el secret APP_REPO_TOKEN esté definido.
+        run: bash "$SCRIPTS_DIR/validar-secreto.sh" APP_REPO_TOKEN "$APP_REPO_TOKEN"
+
+      - name: Verificar que el secret KUBECONFIG_MICROK8S esté definido.
+        run: bash "$SCRIPTS_DIR/validar-secreto.sh" KUBECONFIG_MICROK8S "$KUBECONFIG_MICROK8S"
+
+      - name: Verificar que el secret TS_OAUTH_CLIENT_ID esté definido.
+        run: bash "$SCRIPTS_DIR/validar-secreto.sh" TS_OAUTH_CLIENT_ID "$TS_OAUTH_CLIENT_ID"
+
+      - name: Verificar que el secret TS_OAUTH_SECRET esté definido.
+        run: bash "$SCRIPTS_DIR/validar-secreto.sh" TS_OAUTH_SECRET "$TS_OAUTH_SECRET"
+
+  validate-manifests:
+    name: Validar la sintaxis de los manifiestos de kubernetes antes de compilar.
+    needs: validate-secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar deploy-hub-api para acceder a los scripts y a los manifiestos.
+        uses: actions/checkout@v4
+
+      - name: Validar la sintaxis YAML del manifiesto namespace.yaml.
+        run: bash "$SCRIPTS_DIR/validar-yaml-manifiestos.sh" ".github/workflows/$APP_NAME/manifests/namespace.yaml"
+
+      - name: Validar la sintaxis YAML del manifiesto deployment.yaml.
+        run: bash "$SCRIPTS_DIR/validar-yaml-manifiestos.sh" ".github/workflows/$APP_NAME/manifests/deployment.yaml"
+
+      - name: Validar la sintaxis YAML del manifiesto service.yaml.
+        run: bash "$SCRIPTS_DIR/validar-yaml-manifiestos.sh" ".github/workflows/$APP_NAME/manifests/service.yaml"
+
+  validate-tags-github:
+    name: Validar tags en git (${{ inputs.app_name }}) antes de compilar.
+    needs: validate-manifests
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    outputs:
+      app_sha: ${{ steps.resolve-sha.outputs.app_sha }}
+    steps:
+      - name: Clonar deploy-hub-api para acceder a los scripts.
+        uses: actions/checkout@v4
+
+      - name: Clonar la rama fija de ${{ env.APP_NAME }} (falla si la rama ${{ env.APP_REF }} no existe) con todos sus tags.
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.APP_REPOSITORY }}
+          ref: ${{ env.APP_REF }}
+          path: ${{ env.APP_NAME }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Guardar el commit exacto de ${{ env.APP_NAME }} que usarán todos los jobs siguientes.
+        id: resolve-sha
+        run: echo "app_sha=$(git -C "$APP_NAME" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Verificar que el tag estable anterior exista como tag de git en ${{ env.APP_NAME }}.
+        working-directory: ${{ env.APP_NAME }}
+        run: bash "$SCRIPTS_DIR/verificar-tag-existe.sh" "$PREVIOUS_STABLE_TAG"
+
+      - name: Verificar que el nuevo tag no exista ya como tag de git en ${{ env.APP_NAME }}.
+        working-directory: ${{ env.APP_NAME }}
+        run: bash "$SCRIPTS_DIR/verificar-tag-no-existe.sh" "$NEW_TAG"
+
+  validate-tags-dockerhub:
+    name: Validar tags en Docker Hub antes de compilar.
+    needs: validate-tags-github
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    steps:
+      - name: Clonar deploy-hub-api para acceder a los scripts.
+        uses: actions/checkout@v4
+
+      - name: Iniciar sesión en la Hub API de Docker Hub y guardar el token enmascarado.
+        run: |
+          LOGIN_BODY="$(bash "$SCRIPTS_DIR/construir-body-login-docker-hub.sh")"
+          HUB_API_TOKEN_SIN_VALIDAR="$(bash "$SCRIPTS_DIR/llamar-login-docker-hub.sh" "$LOGIN_BODY")"
+          bash "$SCRIPTS_DIR/validar-token-docker-hub.sh" "$HUB_API_TOKEN_SIN_VALIDAR"
+          echo "::add-mask::$HUB_API_TOKEN_SIN_VALIDAR"
+          echo "HUB_API_TOKEN=$HUB_API_TOKEN_SIN_VALIDAR" >> "$GITHUB_ENV"
+
+      - name: Verificar que el tag estable anterior exista en Docker Hub.
+        run: bash "$SCRIPTS_DIR/verificar-tag-docker-hub-existe.sh" "$IMAGE_REPOSITORY" "$PREVIOUS_STABLE_TAG"
+
+      - name: Verificar que el nuevo tag no exista ya en Docker Hub.
+        run: bash "$SCRIPTS_DIR/verificar-tag-docker-hub-no-existe.sh" "$IMAGE_REPOSITORY" "$NEW_TAG"
+
+  quality:
+    name: Verificar ESLint, Prettier y tests antes de publicar la imagen.
+    needs: [validate-tags-github, validate-tags-dockerhub]
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Clonar ${{ env.APP_NAME }} en el commit validado.
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.APP_REPOSITORY }}
+          ref: ${{ needs.validate-tags-github.outputs.app_sha }}
+
+      - name: Instalar Node.js con la misma versión que usa el Dockerfile.
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar las dependencias exactas del package-lock.json.
+        run: npm ci
+
+      - name: Verificar ESLint (solo lectura, no modifica archivos).
+        run: npm run lint
+
+      - name: Verificar Prettier (solo lectura, no modifica archivos).
+        run: npm run format:check
+
+      - name: Ejecutar los tests unitarios.
+        run: npm test
+
+      - name: Ejecutar los tests e2e.
+        run: npm run test:e2e
+
+  build-and-push:
+    name: Compilar y publicar la imagen ${{ inputs.image_repository }}, y crear el tag de git.
+    needs: [validate-tags-github, quality]
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      APP_REPO_TOKEN: ${{ secrets.APP_REPO_TOKEN }}
+    steps:
+      - name: Clonar deploy-hub-api para acceder a los scripts.
+        uses: actions/checkout@v4
+
+      - name: Clonar ${{ env.APP_NAME }} en el commit validado.
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.APP_REPOSITORY }}
+          ref: ${{ needs.validate-tags-github.outputs.app_sha }}
+          token: ${{ env.APP_REPO_TOKEN }}
+          path: ${{ env.APP_NAME }}
+
+      - name: Iniciar sesión en Docker Hub.
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+
+      - name: Compilar y publicar la imagen ${{ env.IMAGE_REPOSITORY }} en Docker Hub.
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ env.APP_NAME }}
+          push: true
+          tags: ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPOSITORY }}:${{ inputs.new_tag }}
+
+      - name: Crear el tag de git en ${{ env.APP_NAME }} y subirlo al repositorio.
+        working-directory: ${{ env.APP_NAME }}
+        run: bash "$SCRIPTS_DIR/crear-tag-git.sh" "$NEW_TAG"
+
+  gate:
+    name: "Aprobar: puerta de aprobación manual antes de desplegar ${{ inputs.app_name }} en kubernetes."
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.approver_environment }}
+    steps:
+      - name: Publicar un aviso de que la aprobación fue otorgada.
+        run: |
+          echo "::notice title=Aprobación otorgada::Este job no usa secrets, solo espera la aprobación de $APPROVER_ENVIRONMENT antes de desplegar en kubernetes."
+
+  deploy:
+    name: Desplegar ${{ inputs.app_name }} en microk8s.
+    needs: gate
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+    steps:
+      - name: Clonar deploy-hub-api para acceder a los manifiestos y a los scripts.
+        uses: actions/checkout@v4
+
+      - name: Guardar la etiqueta de imagen validada en GITHUB_ENV.
+        run: |
+          IMAGE_TAG="$(bash "$SCRIPTS_DIR/validar-tag-imagen.sh" "$NEW_TAG")"
+          echo "IMAGE_TAG=$IMAGE_TAG" >> "$GITHUB_ENV"
+
+      - name: Unirse a la red de Tailscale para llegar al servidor API de microk8s.
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:continuous-integration
+
+      - name: Generar el archivo de kubeconfig y exportarlo como la variable de entorno KUBECONFIG.
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG_MICROK8S }}
+        run: |
+          KUBECONFIG_PATH="$(bash "$SCRIPTS_DIR/guardar-kubeconfig.sh" "$KUBECONFIG_CONTENT" "$RUNNER_TEMP/$APP_NAME-kubeconfig")"
+          echo "KUBECONFIG=$KUBECONFIG_PATH" >> "$GITHUB_ENV"
+
+      - name: Verificar que el clúster de microk8s sea accesible antes de aplicar los manifiestos.
+        run: kubectl get nodes
+
+      - name: Crear una copia de trabajo de los manifiestos de ${{ env.APP_NAME }} antes de aplicarlos.
+        run: |
+          MANIFESTS_DIR="$(bash "$SCRIPTS_DIR/crear-copia-de-trabajo-de-manifiestos.sh" ".github/workflows/$APP_NAME/manifests" "$RUNNER_TEMP/$APP_NAME-manifests")"
+          echo "MANIFESTS_DIR=$MANIFESTS_DIR" >> "$GITHUB_ENV"
+
+      - name: Reemplazar el nombre de usuario de Docker Hub y la etiqueta de la imagen en el manifiesto de despliegue.
+        run: bash "$SCRIPTS_DIR/reemplazar-placeholders-deployment.sh" "$DOCKERHUB_USERNAME" "$IMAGE_TAG" "$MANIFESTS_DIR/deployment.yaml"
+
+      - name: Aplicar los manifiestos de ${{ env.APP_NAME }} al clúster de microk8s.
+        run: kubectl apply -f "$MANIFESTS_DIR/"
+
+      - name: Reiniciar el despliegue de ${{ env.APP_NAME }} para descargar la nueva imagen.
+        run: kubectl rollout restart deployment/$DEPLOYMENT_NAME -n $NAMESPACE
+
+      - name: Esperar a que finalice el rollout de ${{ env.APP_NAME }}.
+        run: kubectl rollout status deployment/$DEPLOYMENT_NAME -n $NAMESPACE --timeout=180s
+
+      - name: Mostrar el estado del despliegue de ${{ env.APP_NAME }}.
+        run: kubectl get deployment $DEPLOYMENT_NAME -n $NAMESPACE
+
+      - name: Mostrar los pods en ejecución de ${{ env.APP_NAME }}.
+        run: kubectl get pods -n $NAMESPACE -l app=$APP_NAME
+
+      - name: Mostrar el servicio de ${{ env.APP_NAME }}.
+        run: kubectl get service $APP_NAME -n $NAMESPACE
+
+      - name: Describir el despliegue de ${{ env.APP_NAME }} si la instalación falla.
+        if: failure()
+        run: kubectl describe deployment $DEPLOYMENT_NAME -n $NAMESPACE || true
+
+      - name: Mostrar eventos recientes del namespace ${{ env.APP_NAME }} si falla el despliegue.
+        if: failure()
+        run: kubectl get events -n $NAMESPACE --sort-by=.lastTimestamp || true
+
+  cleanup-tags:
+    name: Eliminar todos los tags de ${{ inputs.image_repository }} en Docker Hub excepto los dos tags conservados.
+    needs: deploy
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    steps:
+      - name: Clonar deploy-hub-api para acceder a los scripts.
+        uses: actions/checkout@v4
+
+      - name: Iniciar sesión en la Hub API de Docker Hub y guardar el token enmascarado.
+        run: |
+          LOGIN_BODY="$(bash "$SCRIPTS_DIR/construir-body-login-docker-hub.sh")"
+          HUB_API_TOKEN_SIN_VALIDAR="$(bash "$SCRIPTS_DIR/llamar-login-docker-hub.sh" "$LOGIN_BODY")"
+          bash "$SCRIPTS_DIR/validar-token-docker-hub.sh" "$HUB_API_TOKEN_SIN_VALIDAR"
+          echo "::add-mask::$HUB_API_TOKEN_SIN_VALIDAR"
+          echo "HUB_API_TOKEN=$HUB_API_TOKEN_SIN_VALIDAR" >> "$GITHUB_ENV"
+
+      - name: Listar todos los tags que existen hoy en el repositorio ${{ env.IMAGE_REPOSITORY }} en Docker Hub.
+        run: bash "$SCRIPTS_DIR/listar-tags-docker-hub.sh" "$IMAGE_REPOSITORY" > "$RUNNER_TEMP/all-tags.txt"
+
+      - name: Guardar el tag estable anterior y el nuevo tag en el archivo de lista de conservación.
+        run: bash "$SCRIPTS_DIR/filtrar-tags-a-conservar.sh" "$RUNNER_TEMP/all-tags.txt" "$PREVIOUS_STABLE_TAG" "$NEW_TAG" > "$RUNNER_TEMP/tags-to-keep.txt"
+
+      - name: Guardar todos los tags excepto el tag estable anterior y el nuevo tag en el archivo de lista de eliminación.
+        run: bash "$SCRIPTS_DIR/filtrar-tags-a-eliminar.sh" "$RUNNER_TEMP/all-tags.txt" "$PREVIOUS_STABLE_TAG" "$NEW_TAG" > "$RUNNER_TEMP/tags-to-delete.txt"
+
+      - name: Eliminar todos los tags del archivo de lista de eliminación.
+        run: bash "$SCRIPTS_DIR/eliminar-tags-docker-hub.sh" "$IMAGE_REPOSITORY" "$RUNNER_TEMP/tags-to-delete.txt"
+
+      - name: Escribir los tags conservados en GITHUB_STEP_SUMMARY.
+        run: bash "$SCRIPTS_DIR/renderizar-resumen-tags-conservados-docker-hub.sh" "$PREVIOUS_STABLE_TAG" "$NEW_TAG" "$RUNNER_TEMP/tags-to-keep.txt" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Escribir los tags eliminados en GITHUB_STEP_SUMMARY.
+        run: bash "$SCRIPTS_DIR/renderizar-resumen-tags-eliminados.sh" "$RUNNER_TEMP/tags-to-delete.txt" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verificar que los dos tags conservados sigan existiendo en Docker Hub.
+        run: bash "$SCRIPTS_DIR/verificar-tags-conservados-docker-hub.sh" "$IMAGE_REPOSITORY" "$PREVIOUS_STABLE_TAG" "$NEW_TAG"
+
+      - name: Escribir el link de los tags de Docker Hub en GITHUB_STEP_SUMMARY.
+        run: bash "$SCRIPTS_DIR/renderizar-resumen-link-docker-hub.sh" "$DOCKERHUB_USERNAME" >> "$GITHUB_STEP_SUMMARY"
