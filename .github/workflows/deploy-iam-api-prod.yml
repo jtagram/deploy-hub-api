@@ -1,4 +1,4 @@
-name: Lanzar y desplegar iam-api en producción
+name: Desplegar iam-api en prod
 
 on:
   workflow_dispatch:

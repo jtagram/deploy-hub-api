@@ -1,4 +1,4 @@
-name: Lanzar y desplegar ticket-hub en producción
+name: Desplegar ticket-hub en prod
 
 on:
   workflow_dispatch:

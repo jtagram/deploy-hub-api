@@ -1,4 +1,4 @@
-name: Lanzar y desplegar iam-api en dev
+name: Desplegar iam-api en dev
 
 on:
   workflow_dispatch:

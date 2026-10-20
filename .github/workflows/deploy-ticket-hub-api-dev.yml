@@ -1,4 +1,4 @@
-name: Lanzar y desplegar ticket-hub-api en dev
+name: Desplegar ticket-hub-api en dev
 
 on:
   workflow_dispatch:

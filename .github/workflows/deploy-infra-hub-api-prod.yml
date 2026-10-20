@@ -1,4 +1,4 @@
-name: Lanzar y desplegar infra-hub-api en producción
+name: Desplegar infra-hub-api en prod
 
 on:
   workflow_dispatch:
