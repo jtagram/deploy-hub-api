@@ -1,0 +1,23 @@
+name: Desplegar accounting-rpa en local
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-accounting-rpa-local
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/deploy-local.yml
+    with:
+      app_name: accounting-rpa
+      deployment_name: accounting-rpa
+      namespace: accounting-rpa
+      app_repository: jtagram/accounting-rpa
+      app_ref: local
+      image_repository: accounting-rpa
+    secrets: inherit

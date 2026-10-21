@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: accounting-rpa
+  namespace: accounting-rpa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: accounting-rpa
+  template:
+    metadata:
+      labels:
+        app: accounting-rpa
+    spec:
+      serviceAccountName: accounting-rpa
+      containers:
+        - name: accounting-rpa
+          image: docker.io/DOCKERHUB_USER/accounting-rpa:IMAGE_TAG
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+            - name: LOG_LEVEL
+              value: "info"
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          # Chromium necesita memoria: con los 256Mi de las otras APIs el kernel lo mata.
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          # Kubernetes monta /dev/shm de solo 64Mi y Chromium lo usa para renderizar.
+          volumeMounts:
+            - name: dev-shm
+              mountPath: /dev/shm
+      volumes:
+        - name: dev-shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
