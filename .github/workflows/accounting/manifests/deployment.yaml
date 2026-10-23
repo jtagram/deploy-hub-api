@@ -27,6 +27,8 @@ spec:
               value: "accounting"
             - name: ACCOUNTING_TARGET_APPLICATION_NAME
               value: "accounting-api"
+            - name: ACCOUNTING_API_URL
+              value: http://accounting-api.accounting-api.svc.cluster.local:3000
           startupProbe:
             httpGet:
               path: /api/health
