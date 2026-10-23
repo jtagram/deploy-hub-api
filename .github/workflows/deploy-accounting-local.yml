@@ -1,0 +1,23 @@
+name: Desplegar accounting en local
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-accounting-local
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/deploy-local.yml
+    with:
+      app_name: accounting
+      deployment_name: accounting
+      namespace: accounting
+      app_repository: jtagram/accounting
+      app_ref: local
+      image_repository: accounting
+    secrets: inherit
