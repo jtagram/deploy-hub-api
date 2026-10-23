@@ -7,13 +7,13 @@ y cargarlos como secretos del repositorio en GitHub Actions
 ## DOCKERHUB_USERNAME
 
 La cuenta/organización de Docker Hub bajo la que se publica la imagen de
-accounting-rpa. Se usa para armar la URL de la imagen a desplegar
-(`$DOCKERHUB_USERNAME/accounting-rpa:$IMAGE_TAG`) y para consultar si el tag
+accounting-api. Se usa para armar la URL de la imagen a desplegar
+(`$DOCKERHUB_USERNAME/accounting-api:$IMAGE_TAG`) y para consultar si el tag
 existe antes de desplegar.
 
 1. Es el username que figura en tu perfil de [Docker Hub](https://hub.docker.com/)
    (o el nombre de la organización dueña del repositorio de imágenes).
-2. Tiene que ser el mismo valor que `DOCKERHUB_USERNAME` en `accounting-rpa`.
+2. Tiene que ser el mismo valor que `DOCKERHUB_USERNAME` en `accounting-api`.
 3. Guardalo como `DOCKERHUB_USERNAME`.
 
 ## KUBECONFIG_MICROK8S

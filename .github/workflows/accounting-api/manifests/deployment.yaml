@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: accounting-rpa
-  namespace: accounting-rpa
+  name: accounting-api
+  namespace: accounting-api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: accounting-rpa
+      app: accounting-api
   template:
     metadata:
       labels:
-        app: accounting-rpa
+        app: accounting-api
     spec:
-      serviceAccountName: accounting-rpa
+      serviceAccountName: accounting-api
       containers:
-        - name: accounting-rpa
-          image: docker.io/DOCKERHUB_USER/accounting-rpa:IMAGE_TAG
+        - name: accounting-api
+          image: docker.io/DOCKERHUB_USER/accounting-api:IMAGE_TAG
           imagePullPolicy: Always
           ports:
             - containerPort: 3000

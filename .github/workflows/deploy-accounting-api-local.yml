@@ -1,0 +1,23 @@
+name: Desplegar accounting-api en local
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-accounting-api-local
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/deploy-local.yml
+    with:
+      app_name: accounting-api
+      deployment_name: accounting-api
+      namespace: accounting-api
+      app_repository: jtagram/accounting-api
+      app_ref: local
+      image_repository: accounting-api
+    secrets: inherit
