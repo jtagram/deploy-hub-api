@@ -48,7 +48,7 @@ spec:
                   name: jwt-keys
                   key: JWT_PUBLIC_KEY
             - name: JWT_EXPIRES_IN
-              value: "1h"
+              value: "8h"
             - name: PORT
               value: "3000"
             - name: LOG_LEVEL
